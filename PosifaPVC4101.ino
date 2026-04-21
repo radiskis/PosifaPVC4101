@@ -199,14 +199,15 @@ void loop() {
       float calibratedMicrons = applyCalibration(rawPressure);
       float calibratedMbar = micronsToMbar(calibratedMicrons);
 
-      Serial.print("Raw Pressure: ");
-      Serial.print(rawPressure);
-      Serial.print(" | Calibrated: ");
+      //Serial.print("Raw Pressure: ");
+      //Serial.print(rawPressure);
+      //Serial.print(" | Calibrated: ");
       Serial.print(calibratedMicrons);
-      Serial.print(" µmHg | ");
-      Serial.print(calibratedMbar);
-      Serial.print(" mbar | Raw Temp: ");
-      Serial.println(rawTemp);
+      //Serial.print(" µmHg | ");
+      Serial.print("\t");
+      Serial.println(calibratedMbar);
+      //Serial.print(" mbar | Raw Temp: ");
+      //Serial.println(rawTemp);
 
       char row[LCD_COLS + 1];
       formatMbarRow(row, "Vac", calibratedMbar);
@@ -250,13 +251,13 @@ void loop() {
     //lcd.print("C");
 
     // Optional: minimal serial debug
-    Serial.print("P=");
+    /*Serial.print("P=");
     Serial.print(kPa, 3);
     Serial.print("kPa/");
     Serial.print(mbar, 1);
     Serial.print("mbar T=");
     Serial.print(C, 2);
-    Serial.println("C");
+    Serial.println("C");*/
   } else {
     lcd.clear();
     lcdPrintRow(lcd, 0, "GD fail");
