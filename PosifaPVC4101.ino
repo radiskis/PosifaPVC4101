@@ -5,11 +5,18 @@
 
 #include <Wire.h>
 #include <CheapLCD.h>   
+#include <stdlib.h>
 
 #define PVC4000_ADDR 0x50
 #define CMD_RAW_DATA 0xD0
 #define CMD_CAL_TBL_X 0xD1
 #define CMD_CAL_TBL_Y 0xD2
+
+static const uint8_t LCD_COLS = 16;
+
+#ifndef DTOSTR_UPPERCASE
+#define DTOSTR_UPPERCASE 0x04
+#endif
 
 uint16_t calX[15];
 uint16_t calY[15];
@@ -34,7 +41,27 @@ void lcdSpinnerCustom(CheapLCD &lcd, uint8_t col, uint8_t row) {
   spinnerIdx = (spinnerIdx + 1) % 4;     // advance frame
 }
 
+void lcdPrintRow(CheapLCD &lcd, uint8_t row, const char *text) {
+  char line[LCD_COLS + 1];
+  uint8_t i = 0;
 
+  for (; i < LCD_COLS && text[i] != '\0'; i++) {
+    line[i] = text[i];
+  }
+  for (; i < LCD_COLS; i++) {
+    line[i] = ' ';
+  }
+  line[LCD_COLS] = '\0';
+
+  lcd.setCursor(0, row);
+  lcd.print(line);
+}
+
+void formatMbarRow(char *row, const char *label, float value) {
+  char sci[12];
+  dtostre(value, sci, 2, DTOSTR_UPPERCASE);
+  snprintf(row, LCD_COLS + 1, "%s:%smb", label, sci);
+}
 
 void readCalibrationTable(uint8_t cmd, uint16_t *table) {
   Wire.beginTransmission(PVC4000_ADDR);
@@ -139,10 +166,8 @@ void setup() {
   initSpinnerGlyphs(lcd);
   lcd.backlightOn();
   lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("CPS122 + LCD");
-  lcd.setCursor(0, 1);
-  lcd.print("Init...");
+  lcdPrintRow(lcd, 0, "CPS122 + LCD");
+  lcdPrintRow(lcd, 1, "Init...");
   delay(600);
   lcd.clear();
 }
@@ -183,11 +208,9 @@ void loop() {
       Serial.print(" mbar | Raw Temp: ");
       Serial.println(rawTemp);
 
-      lcd.setCursor(0, 0);
-      //lcd.print("P:");
-      lcd.print("Vacuum:");
-      lcd.print(calibratedMbar, 1);      // e.g., 1013.2
-      lcd.print("mbar");
+      char row[LCD_COLS + 1];
+      formatMbarRow(row, "Vac", calibratedMbar);
+      lcdPrintRow(lcd, 0, row);
 
       // Line 2: Temperature
       lcd.setCursor(10, 0);
@@ -197,15 +220,13 @@ void loop() {
       //lcd.print("C");
     } else {
       Serial.println("Checksum error!");
-      lcd.setCursor(0, 0);
-      lcd.print("Posifa fail!!!!");
+      lcdPrintRow(lcd, 0, "Posifa fail!!!!");
     }
   }
 
   if (!cps122RequestMeasurement()) {
     //lcd.clear();
-    lcd.setCursor(0, 1);
-    lcd.print("MR fail!!!!");
+    lcdPrintRow(lcd, 1, "MR fail!!!!");
     delay(1000);
     return;
   }
@@ -217,10 +238,9 @@ void loop() {
   if (cps122GetData(kPa, C, mbar, rawP, rawT)) {
     // Line 1: Pressure in mbar (fits better than kPa)
     //lcd.clear();
-    lcd.setCursor(0, 1);
-    lcd.print("Atmo:");
-    lcd.print(mbar, 1);      // e.g., 1013.2
-    lcd.print("mbar");
+    char row[LCD_COLS + 1];
+    formatMbarRow(row, "Atm", mbar);
+    lcdPrintRow(lcd, 1, row);
 
     // Line 2: Temperature
     lcd.setCursor(10, 1);
@@ -239,8 +259,7 @@ void loop() {
     Serial.println("C");
   } else {
     lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("GD fail");
+    lcdPrintRow(lcd, 0, "GD fail");
   }
   lcdSpinnerCustom(lcd, 15, 0);
   delay(1000);               // update once per second
